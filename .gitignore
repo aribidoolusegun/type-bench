@@ -1,0 +1,20 @@
+# Dependencies and build output
+node_modules
+dist
+
+# Local environment, credentials and hosting config
+.env
+.env.*
+*.local
+*.pem
+*.key
+.vercel
+
+# Logs and temporary test artifacts
+*.log
+.playwright-mcp
+test-results
+coverage
+
+# OS files
+.DS_Store
