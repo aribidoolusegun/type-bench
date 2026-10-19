@@ -9,14 +9,17 @@ export type SaveState =
   | { kind: 'saving' }
   | { kind: 'saved'; at: Date }
   | { kind: 'error'; reason: string }
+  | { kind: 'paused' }
 
 const SAVE_DELAY_MS = 400
 
 /**
  * Saves settings to localStorage shortly after they change. The status only
- * reads “saved” after the write has actually succeeded.
+ * reads “saved” after the write has actually succeeded. `paused` stops all
+ * writes (used by the stress-test demonstration), so a temporary setup can
+ * never overwrite the user's saved work.
  */
-export function usePersistence(settings: Settings, storage: Storage | null, initial: RestoreResult): SaveState {
+export function usePersistence(settings: Settings, storage: Storage | null, initial: RestoreResult, paused = false): SaveState {
   const [state, setState] = useState<SaveState>(() => {
     if (!storage) return { kind: 'unavailable' }
     if (initial.status === 'restored') return { kind: 'restored' }
@@ -32,6 +35,10 @@ export function usePersistence(settings: Settings, storage: Storage | null, init
 
   useEffect(() => {
     if (!storage) return
+    if (paused) {
+      setState({ kind: 'paused' })
+      return
+    }
     const snapshot = JSON.stringify(settings)
     if (snapshot === lastWritten.current) {
       setState(settled.current)
@@ -48,7 +55,7 @@ export function usePersistence(settings: Settings, storage: Storage | null, init
       setState(next)
     }, SAVE_DELAY_MS)
     return () => window.clearTimeout(timer)
-  }, [settings, storage])
+  }, [settings, storage, paused])
 
   return state
 }

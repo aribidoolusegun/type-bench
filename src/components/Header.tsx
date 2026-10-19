@@ -7,9 +7,11 @@ interface HeaderProps {
   onReset: (opener: HTMLElement) => void
   /** Receives the button, so focus can return to it when the dialog closes. */
   onExport: (opener: HTMLElement) => void
+  /** Reopens the introduction. */
+  onAbout: () => void
 }
 
-export function Header({ systemName, onNameChange, onReset, onExport }: HeaderProps) {
+export function Header({ systemName, onNameChange, onReset, onExport, onAbout }: HeaderProps) {
   return (
     <header className="app-header">
       <div className="app-header__brand">
@@ -38,6 +40,9 @@ export function Header({ systemName, onNameChange, onReset, onExport }: HeaderPr
         />
       </div>
       <div className="app-header__actions">
+        <button type="button" className="button button--ghost header-about" onClick={onAbout}>
+          About<span className="header-about__name"> Type Bench</span>
+        </button>
         <button type="button" className="button button--ghost" onClick={(e) => onReset(e.currentTarget)}>
           <Reset /> Reset
         </button>

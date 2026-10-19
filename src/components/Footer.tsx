@@ -17,6 +17,8 @@ function saveText(state: SaveState): string {
       return `Saved in this browser at ${time.format(state.at)}`
     case 'error':
       return `Not saved: ${state.reason}`
+    case 'paused':
+      return 'Demo running: your saved settings are unchanged.'
   }
 }
 

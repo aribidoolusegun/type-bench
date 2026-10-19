@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'r
 import { ExportDialog, type ExportFormat } from './components/ExportDialog.tsx'
 import { Footer } from './components/Footer.tsx'
 import { Header } from './components/Header.tsx'
+import { Intro, type DemoPhase } from './components/Intro.tsx'
 import { PreviewArea } from './components/preview/PreviewArea.tsx'
 import { StressPanel } from './components/StressPanel.tsx'
 import { Toast } from './components/Toast.tsx'
@@ -13,6 +14,7 @@ import type { Highlight } from './components/preview/HighlightOverlay.tsx'
 import { retryFamily } from './fonts/fontLoader.ts'
 import { useFontFamily } from './fonts/useFontStatus.ts'
 import { useFontSelection } from './fonts/useFontSelection.ts'
+import { demoSettings } from './model/demo.ts'
 import type { FontId } from './model/fonts.ts'
 import { buildCss, buildCssSections, buildJson, buildRootBlock, exportFileNames, requiredWeights } from './model/exportTokens.ts'
 import type { RestoreResult } from './model/persistence.ts'
@@ -21,7 +23,9 @@ import { buildTokens } from './model/tokens.ts'
 import { settingsReducer } from './state/settingsReducer.ts'
 import { useActiveSection } from './state/useActiveSection.ts'
 import { useAnnouncer } from './state/useAnnouncer.ts'
+import { useIntro } from './state/useIntro.ts'
 import { usePersistence } from './state/usePersistence.ts'
+import { usePresence } from './motion/motion.ts'
 import { copyText } from './utils/clipboard.ts'
 import { downloadText } from './utils/download.ts'
 import { canvasAreaWidth } from './utils/layout.ts'
@@ -34,7 +38,7 @@ interface AppProps {
 const SECTIONS = [
   { id: 'preview', label: 'Preview' },
   { id: 'type-system', label: 'Type system' },
-  { id: 'stress-test', label: 'Stress test' },
+  { id: 'stress-test', label: 'Layout testing' },
 ] as const
 const SECTION_IDS = SECTIONS.map((s) => s.id)
 
@@ -48,7 +52,14 @@ export function App({ initial, storage }: AppProps) {
   const tokens = useMemo(() => buildTokens(settings.typography), [settings.typography])
   const weights = useMemo(() => requiredWeights(tokens), [tokens])
   const fontStatus = useFontFamily(settings.typography.fontId, weights)
-  const saveState = usePersistence(settings, storage, initial)
+  // The stress-test demonstration. While it runs, saving is paused so the
+  // temporary setup can never overwrite saved work; `snapshot` is restorable.
+  const [demo, setDemo] = useState<{ snapshot: Settings; phase: DemoPhase; finding: string | null } | null>(null)
+  const saveState = usePersistence(settings, storage, initial, demo !== null)
+  const intro = useIntro(storage)
+  const introPresence = usePresence(intro.open || demo !== null)
+  const introHeadingRef = useRef<HTMLHeadingElement>(null)
+  const [focusIntro, setFocusIntro] = useState(false)
   const { message, announce, dismiss } = useAnnouncer()
   const [activeSection, setActiveSection] = useActiveSection(SECTION_IDS, '.section-nav')
   const commitFont = useCallback((fontId: FontId) => dispatch({ type: 'setFont', fontId }), [])
@@ -88,6 +99,76 @@ export function App({ initial, storage }: AppProps) {
     highlightCount.current += 1
     setHighlight({ id: highlightCount.current, element: item.element, excess: item.excess })
   }
+
+  // The demonstration only reveals a finding from a fresh measurement of the
+  // demo layout (never the result that was on screen before it started), and
+  // only one the layout checks actually found.
+  const resultBeforeDemo = useRef<unknown>(null)
+  const latestResult = diagnostics.kind === 'ready' ? diagnostics.result : null
+  useEffect(() => {
+    if (!demo || demo.phase !== 'preparing' || !latestResult || latestResult === resultBeforeDemo.current) return
+    if (settings.preview.tab !== 'dashboard') return
+    const finding = [...latestResult.overflow, ...latestResult.clipped][0]
+    if (finding) revealFinding(finding)
+    setDemo({ ...demo, phase: finding ? 'shown' : 'none', finding: finding ? `${finding.label}, ${finding.excess} px wider than its box` : null })
+    setFocusIntro(true)
+  }, [demo, latestResult, settings.preview.tab])
+
+  // Move focus to the intro heading after it changes (demo result, reopening).
+  useEffect(() => {
+    if (!focusIntro) return
+    setFocusIntro(false)
+    introHeadingRef.current?.focus({ preventScroll: true })
+    introHeadingRef.current?.scrollIntoView({ block: 'nearest' })
+  }, [focusIntro])
+
+  function startDemo() {
+    fontSelection.cancel()
+    resultBeforeDemo.current = latestResult
+    setDemo({ snapshot: settings, phase: 'preparing', finding: null })
+    dispatch({ type: 'replace', settings: demoSettings(settings) })
+    setFocusIntro(true)
+  }
+
+  function restoreDemo() {
+    if (!demo) return
+    dispatch({ type: 'replace', settings: demo.snapshot })
+    setDemo(null)
+    setFocusIntro(true)
+    announce('Your settings are restored.', 'success')
+  }
+
+  function keepDemo() {
+    if (!demo) return
+    const snapshot = demo.snapshot
+    setDemo(null)
+    intro.dismiss()
+    document.querySelector<HTMLElement>('[role=tab][aria-selected=true]')?.focus()
+    // Not silent: saying so, with a way back.
+    announce('The demo setup is now your configuration and will be saved.', 'neutral', {
+      label: 'Undo',
+      run: () => dispatch({ type: 'replace', settings: snapshot }),
+    })
+  }
+
+  function startExploring() {
+    intro.dismiss()
+    document.querySelector<HTMLElement>('[role=tab][aria-selected=true]')?.focus()
+  }
+
+  function openAbout() {
+    intro.reopen()
+    setFocusIntro(true)
+  }
+
+  // What the layout checks report right now, for the demo's live line.
+  const liveCheck = demo && latestResult
+    ? (() => {
+        const n = latestResult.overflow.length + latestResult.clipped.length
+        if (latestResult.pastEdge > 0 || n > 0) return `Layout checks: ${n === 1 ? '1 element overflows' : `${n} elements overflow`}${latestResult.pastEdge > 0 ? `, running ${latestResult.pastEdge} px past the edge` : ''}.`
+        return 'Layout checks: nothing overflows now.'
+      })()
+    : null
 
   // Exports use the cleaned-up name even while the name field is mid-edit.
   const exportSettings: Settings = useMemo(
@@ -132,7 +213,7 @@ export function App({ initial, storage }: AppProps) {
     const previous = settings
     fontSelection.cancel()
     dispatch({ type: 'reset', widths: defaultWidthsFor(canvasAreaWidth()) })
-    announce('Typography, preview and stress tests reset to defaults.', 'neutral', {
+    announce('Typography, preview and layout tests reset to defaults.', 'neutral', {
       label: 'Undo',
       run: () => dispatch({ type: 'replace', settings: previous }),
       returnFocus: opener,
@@ -171,6 +252,7 @@ export function App({ initial, storage }: AppProps) {
         onNameChange={(name) => dispatch({ type: 'setSystemName', name })}
         onReset={reset}
         onExport={(opener) => openExport(opener)}
+        onAbout={openAbout}
       />
 
       <nav className="section-nav" aria-label="Sections">
@@ -190,6 +272,19 @@ export function App({ initial, storage }: AppProps) {
           stacked phone layout and the section bar. The grid still places the
           Type system column on the left on wide screens. */}
       <main id="preview" className="workspace" aria-labelledby="preview-title" tabIndex={-1}>
+        {introPresence.mounted && (
+          <Intro
+            ref={introHeadingRef}
+            demo={demo && { phase: demo.phase, finding: demo.finding }}
+            liveCheck={liveCheck}
+            resolved={!!latestResult && latestResult.pastEdge === 0 && latestResult.overflow.length + latestResult.clipped.length === 0}
+            closing={introPresence.closing}
+            onTry={startDemo}
+            onExplore={startExploring}
+            onRestore={restoreDemo}
+            onKeep={keepDemo}
+          />
+        )}
         <PreviewArea
           settings={settings}
           tokens={tokens}

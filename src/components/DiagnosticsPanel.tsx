@@ -172,9 +172,9 @@ function Results({ result, stale, onReveal, onCollapse }: { result: Diagnostics 
 /** A one-line summary for screen readers; identical results produce no new announcement. */
 function verdict(result: Diagnostics): string {
   const contained = result.overflow.length + result.clipped.length
-  if (result.pastEdge > 0) return `Diagnostics: content runs ${result.pastEdge} pixels past the specimen edge.`
-  if (contained > 0) return `Diagnostics: ${plural(contained, 'element')} overflow their containers.`
-  return 'Diagnostics: no overflow found.'
+  if (result.pastEdge > 0) return `Layout checks: content runs ${result.pastEdge} pixels past the specimen edge.`
+  if (contained > 0) return `Layout checks: ${plural(contained, 'element')} overflow their containers.`
+  return 'Layout checks: no overflow found.'
 }
 
 export function DiagnosticsPanel({ state, fontName, onReveal, onClearHighlight }: DiagnosticsPanelProps) {
@@ -197,7 +197,7 @@ export function DiagnosticsPanel({ state, fontName, onReveal, onClearHighlight }
     ;(first ?? headingRef.current)?.focus()
   }, [latest])
 
-  const help = useHelp('Diagnostics')
+  const help = useHelp('Layout checks')
   const result = state.kind === 'ready' ? state.result : state.kind === 'measuring' ? state.previous : null
   const status =
     state.kind === 'waiting-font'
@@ -221,7 +221,7 @@ export function DiagnosticsPanel({ state, fontName, onReveal, onClearHighlight }
     >
       <div className="panel-subhead">
         <h3 id="diag-title" ref={headingRef} className="panel-subtitle" tabIndex={-1}>
-          Diagnostics
+          Layout checks
         </h3>
         {help.button}
         {/* Visible status only: it changes on every resize, so it is not a live region. */}

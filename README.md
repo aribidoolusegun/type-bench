@@ -18,8 +18,9 @@ Most font tools stop at the specimen: a pangram at a few sizes on a wide screen.
 - **A generated type scale**: Caption (base ÷ ratio), Body, H3 (ratio³), H2 (ratio⁴), H1 (ratio⁵) and Display (ratio⁶), with explicit, tighter line heights for headings.
 - **Three realistic previews** (Editorial, Dashboard and Mobile), all driven by the same tokens. The text is real HTML that you can select.
 - **Real resizing**: drag the handles, use the slider or type a width. The specimen's CSS width changes and the content reflows. Nothing is scaled.
-- **Stress tests**: four content lengths, long headings, and large numbers (dashboard only).
-- **Live diagnostics** measured from the rendered page: heading line counts, horizontal overflow (with deliberate scroll regions reported separately) and approximate characters per line.
+- **Layout testing**: four content lengths, long headings, and large numbers (dashboard only).
+- **A first-use introduction and a short demonstration** (“See how it works”): a fixed, reproducible setup (Inter at a 1.54 ratio on the Dashboard) that produces genuine overflow, outlines it, and restores your own settings afterwards. Saving pauses while it runs, so it can never overwrite your work.
+- **Layout checks** measured from the rendered page: heading line counts, horizontal overflow (with deliberate scroll regions reported separately) and approximate characters per line.
 - **Export**: copy CSS, download CSS, or download JSON tokens in the Design Tokens Community Group format. Each export includes font-loading guidance and a usage example.
 - **Local persistence**: settings and the system name are saved in your browser, with a versioned format and validation on restore.
 - **Accessible by design**: labelled controls, keyboard-operable tabs, picker and resize handles, visible focus, live announcements and reduced-motion support.
@@ -80,9 +81,9 @@ The built site is fully static and uses relative paths, so `dist/` can be served
 - Headings use fixed line heights (Display 1.1, H1 1.15, H2 1.2, H3 1.25). Body and caption follow the body line-height control.
 - The weight control sets the weight for all text. An *emphasis* weight, two steps heavier and limited to what the family supports, is used for labels, buttons and table headers, and is exported as `--font-weight-strong`.
 
-## What the diagnostics can and can't tell you
+## What the layout checks can and can't tell you
 
-Diagnostics are measured from the rendered preview after fonts have loaded, never estimated from the settings alone. They describe *this sample content at this width*. Line length is an approximation based on average character width. None of these checks is an accessibility audit, and the sample copy can't predict every content problem, so test with your real copy as well.
+Layout checks are measured from the rendered preview after fonts have loaded, never estimated from the settings alone. They describe *this sample content at this width*. Line length is an approximation based on average character width. None of these checks is an accessibility audit, and the sample copy can't predict every content problem, so test with your real copy as well.
 
 ## Fonts and licences
 

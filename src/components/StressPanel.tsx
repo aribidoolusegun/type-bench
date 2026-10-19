@@ -54,7 +54,7 @@ export function StressPanel({
   return (
     <div className="panel-inner">
       <h2 id="stress-title" className="panel-title">
-        Stress test
+        Layout testing
       </h2>
 
       <SliderField label="Viewport width" unit="px" value={width} {...BOUNDS.width} decimals={0} snap onChange={onWidthChange}>

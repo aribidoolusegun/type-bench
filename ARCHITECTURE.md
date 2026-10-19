@@ -66,7 +66,7 @@ Settings (useReducer)
 
 `ResizableCanvas` sets a real CSS width on the canvas, so the specimen reflows as it would in a browser window of that width. Specimen layouts use **container queries**, so they respond to the canvas, not the browser window. The handles use Pointer Events with pointer capture, apply at most one width change per animation frame, and are `role="separator"` elements that work with the keyboard. The slider, the number fields and the handles all dispatch the same `setWidth` action.
 
-## Diagnostics
+## Layout checks (measured diagnostics)
 
 `useDiagnostics` re-measures after settings, content, tab or font changes, after `document.fonts` finishes loading, and whenever a `ResizeObserver` sees the specimen change size. It waits 160ms for things to settle and pauses entirely while a handle is being dragged. `measure.ts` then:
 
@@ -120,4 +120,8 @@ Each overflow finding keeps a reference to the element it measured (`OverflowIte
 
 ## Source order
 
-The preview comes before the two sidebars in the HTML, so keyboard order matches the stacked phone layout and its section bar (Preview, Type system, Stress test). CSS grid areas still place the Type system column on the left on wide screens; there, Tab moves from the header to the preview, then the Type system and Stress test panels.
+The preview comes before the two sidebars in the HTML, so keyboard order matches the stacked phone layout and its section bar (Preview, Type system, Layout testing). CSS grid areas still place the Type system column on the left on wide screens; there, Tab moves from the header to the preview, then the Type system and Layout testing panels.
+
+## Introduction and demonstration
+
+The introduction (`components/Intro.tsx`) sits above the preview until dismissed; dismissal is stored under its own key (`type-bench:intro`), separate from settings, and “About Type Bench” in the header brings it back. “See how it works” never starts the demonstration by itself. It snapshots the current settings in memory, pauses persistence (`usePersistence(…, paused)`), and applies `demoSettings()` from `model/demo.ts`: Inter, 16px, ratio 1.54, Dashboard at 760px. It then waits for a fresh measurement of that layout (never the result that was on screen before) and reveals the first finding the layout checks report. If none is found it says so. “Restore my settings” replaces the settings with the snapshot; “Keep exploring” resumes saving and announces it with an Undo. Because saving is paused, a reload mid-demo returns to the saved settings.
