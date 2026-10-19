@@ -7,7 +7,7 @@ The session takes about 20 minutes. Please think aloud as you go. If something i
 ## Before you start
 
 - Use a desktop or laptop browser. Optionally, try a phone afterwards.
-- Open Type Bench at the link you were sent.
+- Open Type Bench at **https://type-bench.vercel.app**. This is a beta preview; nothing to install, no account needed.
 - Settings save in your browser, so the next visit continues where you left off. **Reset** in the header returns to the defaults.
 
 ## Tasks
