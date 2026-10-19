@@ -58,20 +58,23 @@ describe('font catalogue', () => {
 })
 
 describe('switching families', () => {
-  it('keeps the weight when the new family supports it', () => {
+  it('keeps both weights when the new family supports them', () => {
     const start = createDefaultSettings()
     const inter = settingsReducer(
-      settingsReducer(start, { type: 'setTypography', patch: { weight: 300 } }),
+      settingsReducer(start, { type: 'setTypography', patch: { bodyWeight: 300, headingWeight: 700 } }),
       { type: 'setFont', fontId: 'inter' },
     )
-    assert.equal(inter.typography.weight, 300)
+    assert.equal(inter.typography.bodyWeight, 300)
+    assert.equal(inter.typography.headingWeight, 700)
   })
 
-  it('moves to the nearest supported weight when it does not', () => {
-    const thin = settingsReducer(createDefaultSettings(), { type: 'setTypography', patch: { weight: 100 } })
-    assert.equal(settingsReducer(thin, { type: 'setFont', fontId: 'lora' }).typography.weight, 400)
-    const black = settingsReducer(createDefaultSettings(), { type: 'setTypography', patch: { weight: 900 } })
-    assert.equal(settingsReducer(black, { type: 'setFont', fontId: 'open-sans' }).typography.weight, 800)
+  it('moves each weight to the nearest supported one when it does not', () => {
+    const thin = settingsReducer(createDefaultSettings(), { type: 'setTypography', patch: { bodyWeight: 100, headingWeight: 900 } })
+    const lora = settingsReducer(thin, { type: 'setFont', fontId: 'lora' }).typography
+    assert.deepEqual([lora.bodyWeight, lora.headingWeight], [400, 700])
+    const black = settingsReducer(createDefaultSettings(), { type: 'setTypography', patch: { bodyWeight: 900, headingWeight: 900 } })
+    const openSans = settingsReducer(black, { type: 'setFont', fontId: 'open-sans' }).typography
+    assert.deepEqual([openSans.bodyWeight, openSans.headingWeight], [800, 800])
   })
 
   it('fits first-visit widths to small canvases without changing large-screen defaults', () => {

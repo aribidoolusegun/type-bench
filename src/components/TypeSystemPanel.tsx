@@ -1,8 +1,10 @@
 import type { LoadStatus } from '../fonts/fontLoader.ts'
 import { getFont, supportedWeights, WEIGHT_NAMES, type FontId } from '../model/fonts.ts'
-import { BOUNDS, NAMED_RATIOS, ratioName, type Typography } from '../model/settings.ts'
+import { BOUNDS, NAMED_RATIOS, ratioName, type SmallScreenHeadings, type Typography } from '../model/settings.ts'
 import type { TypeTokens } from '../model/tokens.ts'
+import type { TypographyPatch } from '../state/settingsReducer.ts'
 import { SliderField } from './controls/SliderField.tsx'
+import { Switch } from './controls/Switch.tsx'
 import { FontPicker } from './FontPicker.tsx'
 import { ScaleList } from './ScaleList.tsx'
 
@@ -13,8 +15,13 @@ interface TypeSystemPanelProps {
   pendingFontId: FontId | null
   failedFontId: FontId | null
   onChooseFont: (id: FontId) => void
-  onChange: (patch: Partial<Omit<Typography, 'fontId'>>) => void
+  onChange: (patch: TypographyPatch) => void
+  onSmallScreenChange: (patch: Partial<SmallScreenHeadings>) => void
   onRetryFont: () => void
+  /** Whether the specimen, at its current width, is using the small-screen sizes. */
+  smallScreenActive: boolean
+  /** Explains a weight that moved when the font changed; empty otherwise. */
+  weightNote: string | null
 }
 
 function weightName(weight: number): string | undefined {
@@ -29,11 +36,23 @@ export function TypeSystemPanel({
   failedFontId,
   onChooseFont,
   onChange,
+  onSmallScreenChange,
   onRetryFont,
+  smallScreenActive,
+  weightNote,
 }: TypeSystemPanelProps) {
   const font = getFont(typography.fontId)
   const weights = supportedWeights(font)
   const named = ratioName(typography.ratio)
+  const small = typography.smallScreen
+  const weightField = {
+    min: weights[0] ?? 400,
+    max: weights[weights.length - 1] ?? 400,
+    step: 100,
+    decimals: 0,
+    snap: true,
+    valueText: (w: number) => (weightName(w) ? `${w}, ${weightName(w)}` : String(w)),
+  }
 
   return (
     <div className="panel-inner">
@@ -61,6 +80,7 @@ export function TypeSystemPanel({
 
       <SliderField
         label="Scale ratio"
+        meta={small.enabled ? `≥ ${small.breakpoint} px` : undefined}
         value={typography.ratio}
         {...BOUNDS.ratio}
         decimals={3}
@@ -86,6 +106,42 @@ export function TypeSystemPanel({
         </div>
       </SliderField>
 
+      <div className="small-screen">
+        <Switch
+          label="Adjust for small screens"
+          checked={small.enabled}
+          onChange={(enabled) => onSmallScreenChange({ enabled })}
+        />
+        {small.enabled && (
+          <div className="small-screen__fields" role="group" aria-label="Small-screen headings">
+            <SliderField
+              label="Small-screen heading ratio"
+              shortLabel="Heading ratio"
+              meta={`< ${small.breakpoint} px`}
+              value={small.ratio ?? typography.ratio}
+              {...BOUNDS.ratio}
+              decimals={3}
+              onChange={(ratio) => onSmallScreenChange({ ratio })}
+            />
+            <SliderField
+              label="Small-screen breakpoint"
+              shortLabel="Breakpoint"
+              unit="px"
+              value={small.breakpoint}
+              {...BOUNDS.breakpoint}
+              decimals={0}
+              snap
+              slider={false}
+              className="field--tight"
+              onChange={(breakpoint) => onSmallScreenChange({ breakpoint })}
+            />
+            <p className="field__hint">
+              When the preview width is below {small.breakpoint} px, Display to H3 use this ratio. Body text stays the same.
+            </p>
+          </div>
+        )}
+      </div>
+
       <SliderField
         label="Body line height"
         value={typography.lineHeight}
@@ -95,19 +151,27 @@ export function TypeSystemPanel({
       />
 
       <SliderField
-        label="Font weight"
-        meta={weightName(typography.weight)}
-        value={typography.weight}
-        min={weights[0] ?? 400}
-        max={weights[weights.length - 1] ?? 400}
-        step={100}
-        decimals={0}
-        snap
-        valueText={(w) => (weightName(w) ? `${w}, ${weightName(w)}` : String(w))}
-        onChange={(weight) => onChange({ weight })}
+        label="Body weight"
+        meta={weightName(typography.bodyWeight)}
+        value={typography.bodyWeight}
+        {...weightField}
+        onChange={(bodyWeight) => onChange({ bodyWeight })}
       />
 
-      <ScaleList tokens={tokens} />
+      <SliderField
+        label="Heading weight"
+        meta={weightName(typography.headingWeight)}
+        value={typography.headingWeight}
+        {...weightField}
+        onChange={(headingWeight) => onChange({ headingWeight })}
+      >
+        {/* Always present, so a font change that moves a weight is announced once, politely. */}
+        <p className="field__hint weight-note" role="status">
+          {weightNote}
+        </p>
+      </SliderField>
+
+      <ScaleList tokens={tokens} smallScreenActive={smallScreenActive} />
     </div>
   )
 }

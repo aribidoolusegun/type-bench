@@ -3,16 +3,36 @@ import { DEFAULT_FONT_ID, type FontId } from './fonts.ts'
 export type PreviewTab = 'editorial' | 'dashboard' | 'mobile'
 export type ContentLength = 'short' | 'standard' | 'long' | 'extended'
 
+/**
+ * Optional smaller headings for narrow layouts. They apply when the space the
+ * type is set in (the preview specimen, or an exported container) is
+ * narrower than the breakpoint. Body text never changes.
+ */
+export interface SmallScreenHeadings {
+  /** Off disables the effect only; the ratio and breakpoint are kept. */
+  enabled: boolean
+  /**
+   * Ratio for Display, H1, H2 and H3 below the breakpoint. Null until first
+   * configured: switching on then starts it at the scale ratio, once.
+   */
+  ratio: number | null
+  /** Container width in px; small-screen sizes apply below it. */
+  breakpoint: number
+}
+
 export interface Typography {
   fontId: FontId
   /** Base (body) size in px. */
   baseSize: number
-  /** Modular scale ratio. */
+  /** Modular scale ratio: every role at the breakpoint and wider, and Caption always. */
   ratio: number
   /** Unitless body line height. */
   lineHeight: number
-  /** Text weight, always one the selected family supports. */
-  weight: number
+  /** Body and supporting text. Always one the selected family supports. */
+  bodyWeight: number
+  /** Display, H1, H2 and H3. Always one the selected family supports. */
+  headingWeight: number
+  smallScreen: SmallScreenHeadings
 }
 
 export interface StressSettings {
@@ -45,6 +65,7 @@ export const BOUNDS = {
   ratio: { min: 1.05, max: 1.75, step: 0.005 },
   lineHeight: { min: 1, max: 2.2, step: 0.05 },
   width: { min: 280, max: 1600, step: 1 },
+  breakpoint: { min: 320, max: 1600, step: 1 },
 } as const satisfies Record<string, NumericBounds>
 
 export const SYSTEM_NAME_MAX_LENGTH = 80
@@ -78,13 +99,15 @@ export const DEFAULT_TYPOGRAPHY: Typography = {
   baseSize: 16,
   ratio: 1.25,
   lineHeight: 1.5,
-  weight: 400,
+  bodyWeight: 400,
+  headingWeight: 400,
+  smallScreen: { enabled: false, ratio: null, breakpoint: 600 },
 }
 
 export function createDefaultSettings(systemName = DEFAULT_SYSTEM_NAME): Settings {
   return {
     systemName,
-    typography: { ...DEFAULT_TYPOGRAPHY },
+    typography: { ...DEFAULT_TYPOGRAPHY, smallScreen: { ...DEFAULT_TYPOGRAPHY.smallScreen } },
     preview: { tab: 'editorial', widths: { editorial: 640, dashboard: 760, mobile: 390 } },
     stress: { contentLength: 'standard', longHeadings: false, largeNumbers: false },
   }

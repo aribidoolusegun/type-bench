@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import { restoreSettings, serialiseSettings, STORAGE_KEY, STORAGE_VERSION, validateSettings, writeSettings } from './persistence.ts'
+import { getFont, strongWeightFor } from './fonts.ts'
 import { createDefaultSettings, type Settings } from './settings.ts'
+import { buildTokens, cssVariables, toRem } from './tokens.ts'
+import { computeScale } from './typeScale.ts'
 
 function envelope(settings: unknown, version: unknown = STORAGE_VERSION): string {
   return JSON.stringify({ version, savedAt: '2026-10-19T12:00:00.000Z', settings })
@@ -11,7 +14,15 @@ describe('restoring settings', () => {
   it('round-trips valid settings unchanged', () => {
     const original: Settings = {
       systemName: 'Product UI',
-      typography: { fontId: 'lora', baseSize: 18, ratio: 1.333, lineHeight: 1.6, weight: 600 },
+      typography: {
+        fontId: 'lora',
+        baseSize: 18,
+        ratio: 1.333,
+        lineHeight: 1.6,
+        bodyWeight: 500,
+        headingWeight: 700,
+        smallScreen: { enabled: true, ratio: 1.2, breakpoint: 640 },
+      },
       preview: { tab: 'mobile', widths: { editorial: 900, dashboard: 1100, mobile: 360 } },
       stress: { contentLength: 'long', longHeadings: true, largeNumbers: true },
     }
@@ -71,16 +82,71 @@ describe('restoring settings', () => {
 
   it('snaps a weight the restored family lacks to the nearest supported one', () => {
     const stored = createDefaultSettings()
-    const result = restoreSettings(envelope({ ...stored, typography: { ...stored.typography, fontId: 'lora', weight: 200 } }))
-    assert.equal(result.settings.typography.weight, 400)
+    const result = restoreSettings(envelope({ ...stored, typography: { ...stored.typography, fontId: 'lora', bodyWeight: 200, headingWeight: 800 } }))
+    assert.equal(result.settings.typography.bodyWeight, 400)
+    assert.equal(result.settings.typography.headingWeight, 700)
     assert.equal(result.status, 'repaired')
-    const manrope = validateSettings({ ...stored, typography: { ...stored.typography, fontId: 'manrope', weight: 900 } })
-    assert.equal(manrope.settings.typography.weight, 800)
+    const manrope = validateSettings({ ...stored, typography: { ...stored.typography, fontId: 'manrope', bodyWeight: 900, headingWeight: 900 } })
+    assert.equal(manrope.settings.typography.bodyWeight, 800)
+    assert.equal(manrope.settings.typography.headingWeight, 800)
   })
 
   it('cleans up the system name', () => {
     const { settings } = validateSettings({ ...createDefaultSettings(), systemName: '   ' })
     assert.equal(settings.systemName, 'Untitled type system')
+  })
+})
+
+describe('migrating version 1 settings', () => {
+  // Exactly what Type Bench 1 saved: one weight for all text.
+  const legacy = {
+    systemName: 'Legacy system',
+    typography: { fontId: 'lora', baseSize: 18, ratio: 1.333, lineHeight: 1.6, weight: 500 },
+    preview: { tab: 'dashboard', widths: { editorial: 900, dashboard: 1100, mobile: 360 } },
+    stress: { contentLength: 'long', longHeadings: true, largeNumbers: false },
+  }
+
+  it('restores cleanly with the old weight for body and headings, and small screens off', () => {
+    const result = restoreSettings(envelope(legacy, 1))
+    assert.equal(result.status, 'restored')
+    assert.deepEqual(result.issues, [])
+    assert.deepEqual(result.settings.typography, {
+      fontId: 'lora',
+      baseSize: 18,
+      ratio: 1.333,
+      lineHeight: 1.6,
+      bodyWeight: 500,
+      headingWeight: 500,
+      smallScreen: { enabled: false, ratio: null, breakpoint: 600 },
+    })
+    assert.deepEqual(result.settings.preview, legacy.preview)
+    assert.deepEqual(result.settings.stress, legacy.stress)
+  })
+
+  it('renders exactly as version 1 did', () => {
+    const tokens = buildTokens(restoreSettings(envelope(legacy, 1)).settings.typography)
+    const vars = cssVariables(tokens)
+    // Version 1 set headings and body text in the one weight, with emphasis two steps heavier.
+    assert.equal(vars['--font-weight-body'], '500')
+    assert.equal(vars['--font-weight-heading'], '500')
+    assert.equal(vars['--font-weight-strong'], String(strongWeightFor(getFont('lora'), 500)))
+    for (const step of computeScale({ baseSize: 18, ratio: 1.333, lineHeight: 1.6 })) {
+      assert.equal(vars[`--font-size-${step.role}`], toRem(step.px), step.role)
+    }
+    assert.equal(tokens.smallScreen, null)
+  })
+
+  it('still snaps an unsupported legacy weight, and reports it', () => {
+    const result = restoreSettings(envelope({ ...legacy, typography: { ...legacy.typography, weight: 200 } }, 1))
+    assert.equal(result.status, 'repaired')
+    assert.equal(result.settings.typography.bodyWeight, 400)
+    assert.equal(result.settings.typography.headingWeight, 400)
+  })
+
+  it('saves in the current version afterwards', () => {
+    const migrated = restoreSettings(envelope(legacy, 1)).settings
+    assert.equal(JSON.parse(serialiseSettings(migrated)).version, 2)
+    assert.equal(STORAGE_VERSION, 2)
   })
 })
 

@@ -14,7 +14,8 @@ import {
 } from './settings.ts'
 
 export const STORAGE_KEY = 'type-bench:settings'
-export const STORAGE_VERSION = 1
+/** 2 added body and heading weights and small-screen headings; version 1 is migrated. */
+export const STORAGE_VERSION = 2
 
 interface StoredEnvelope {
   version: typeof STORAGE_VERSION
@@ -79,18 +80,34 @@ export function validateSettings(input: unknown): { settings: Settings; issues: 
   const d = defaults.typography
   const fontId = isFontId(typoIn.fontId) ? typoIn.fontId : (issues.push('Font was not recognised; using DM Sans.'), d.fontId)
   const font = getFont(fontId)
-  const rawWeight = isFiniteNumber(typoIn.weight) ? typoIn.weight : (issues.push('Weight was invalid.'), d.weight)
-  const weight = nearestSupportedWeight(font, rawWeight)
-  if (weight !== rawWeight && isFiniteNumber(typoIn.weight)) {
-    issues.push(`${font.name} does not support weight ${rawWeight}; using ${weight}.`)
+  const readWeight = (key: string, label: string): number => {
+    const raw = typoIn[key]
+    if (!isFiniteNumber(raw)) {
+      issues.push(`${label} was invalid.`)
+      return nearestSupportedWeight(font, d.bodyWeight)
+    }
+    const weight = nearestSupportedWeight(font, raw)
+    if (weight !== raw) issues.push(`${font.name} does not support ${label.toLowerCase()} ${raw}; using ${weight}.`)
+    return weight
   }
 
+  const ratio = readNumber(typoIn, 'ratio', BOUNDS.ratio, d.ratio, issues, 'Scale ratio')
+  const smallIn = isRecord(typoIn.smallScreen) ? typoIn.smallScreen : (issues.push('Small-screen settings were missing.'), {})
   const typography = {
     fontId,
     baseSize: readNumber(typoIn, 'baseSize', BOUNDS.baseSize, d.baseSize, issues, 'Base size'),
-    ratio: readNumber(typoIn, 'ratio', BOUNDS.ratio, d.ratio, issues, 'Scale ratio'),
+    ratio,
     lineHeight: readNumber(typoIn, 'lineHeight', BOUNDS.lineHeight, d.lineHeight, issues, 'Line height'),
-    weight,
+    bodyWeight: readWeight('bodyWeight', 'Body weight'),
+    headingWeight: readWeight('headingWeight', 'Heading weight'),
+    smallScreen: {
+      enabled: readBoolean(smallIn, 'enabled', d.smallScreen.enabled, issues, 'Adjust for small screens'),
+      // Null means it has never been configured; the reducer fills it in when switched on.
+      ratio: isFiniteNumber(smallIn.ratio)
+        ? readNumber(smallIn, 'ratio', BOUNDS.ratio, ratio, issues, 'Small-screen heading ratio')
+        : (smallIn.ratio != null && issues.push('Small-screen heading ratio was invalid.'), null),
+      breakpoint: Math.round(readNumber(smallIn, 'breakpoint', BOUNDS.breakpoint, d.smallScreen.breakpoint, issues, 'Breakpoint')),
+    },
   }
 
   const previewIn = isRecord(input.preview) ? input.preview : (issues.push('Preview settings were missing.'), {})
@@ -104,7 +121,7 @@ export function validateSettings(input: unknown): { settings: Settings; issues: 
     widths,
   }
 
-  const stressIn = isRecord(input.stress) ? input.stress : (issues.push('Stress-test settings were missing.'), {})
+  const stressIn = isRecord(input.stress) ? input.stress : (issues.push('Layout testing settings were missing.'), {})
   const ds = defaults.stress
   const stress = {
     contentLength: readEnum<ContentLength>(stressIn, 'contentLength', CONTENT_LENGTHS, ds.contentLength, issues, 'Content length'),
@@ -115,6 +132,26 @@ export function validateSettings(input: unknown): { settings: Settings; issues: 
   return { settings: { systemName, typography, preview, stress }, issues }
 }
 
+/**
+ * Version 1 had one weight for all text, and headings were set in it; the
+ * emphasis weight was derived from it. Using it for both body and headings,
+ * with small-screen headings off, reproduces the saved appearance exactly
+ * (emphasis is still derived from the body weight).
+ */
+export function migrateV1(settings: unknown): unknown {
+  if (!isRecord(settings) || !isRecord(settings.typography)) return settings
+  const { weight, ...rest } = settings.typography
+  return {
+    ...settings,
+    typography: {
+      ...rest,
+      bodyWeight: weight,
+      headingWeight: weight,
+      smallScreen: { ...createDefaultSettings().typography.smallScreen },
+    },
+  }
+}
+
 export function restoreSettings(raw: string | null): RestoreResult {
   if (raw === null) return { settings: createDefaultSettings(), status: 'empty', issues: [] }
   let parsed: unknown
@@ -123,6 +160,7 @@ export function restoreSettings(raw: string | null): RestoreResult {
   } catch {
     return { settings: createDefaultSettings(), status: 'discarded', issues: ['Saved settings could not be read.'] }
   }
+  if (isRecord(parsed) && parsed.version === 1) parsed = { ...parsed, version: STORAGE_VERSION, settings: migrateV1(parsed.settings) }
   if (!isRecord(parsed) || parsed.version !== STORAGE_VERSION) {
     const note =
       isRecord(parsed) && isFiniteNumber(parsed.version) && parsed.version > STORAGE_VERSION

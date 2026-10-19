@@ -13,10 +13,10 @@ The session takes about 20 minutes. Please think aloud as you go. If something i
 ## Tasks
 
 ### 1. Create a type system (about 8 minutes)
-Choose a font and adjust the base size, scale ratio, body line height and weight until you have a system you would be happy to use on a real product. Name it with the field at the top of the page.
+Choose a font and adjust the base size, scale ratio, body line height and the body and heading weights until you have a system you would be happy to use on a real product. Name it with the field at the top of the page.
 
 ### 2. Inspect it at a narrow width (about 7 minutes)
-Narrow the preview to a phone width, using the width presets, the width field or the blue handles beside the canvas. Look at the Editorial, Dashboard and Mobile previews. Use **Layout checks** (in the Layout testing panel) to find anything that doesn't fit, and its **Show** action to locate it. Change your settings if you want to.
+Narrow the preview to a phone width, using the **Preview width** presets or field above the canvas, or the blue handles beside it. Look at the Editorial, Dashboard and Mobile previews. Use **Layout checks** (in the Layout testing panel) to find anything that doesn't fit, and its **Show** action to locate it. Change your settings if you want to.
 
 ### 3. Export CSS (about 5 minutes)
 Open **Export** and copy or download the CSS. Explain how you would use it in a project, and what you would need to change or add.

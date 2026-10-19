@@ -1,6 +1,8 @@
 import { useCallback, useRef, useState } from 'react'
-import { getFont, nearestSupportedWeight, strongWeightFor, type FontId } from '../model/fonts.ts'
+import { requiredWeights } from '../model/exportTokens.ts'
+import type { FontId } from '../model/fonts.ts'
 import type { Typography } from '../model/settings.ts'
+import { buildTokens } from '../model/tokens.ts'
 import { familyStatus, loadFamily, retryFamily } from './fontLoader.ts'
 
 /**
@@ -30,9 +32,8 @@ export function useFontSelection(typography: Typography, commit: (id: FontId) =>
         cancel()
         return
       }
-      const font = getFont(id)
-      const weight = nearestSupportedWeight(font, typography.weight)
-      const weights = [weight, strongWeightFor(font, weight)]
+      // The weights this family will actually use once committed: body, heading and emphasis.
+      const weights = requiredWeights(buildTokens({ ...typography, fontId: id }))
       const status = familyStatus(id, weights)
       if (status === 'loaded') {
         latest.current = null
@@ -51,7 +52,7 @@ export function useFontSelection(typography: Typography, commit: (id: FontId) =>
         else setFailedId(id)
       })
     },
-    [typography.fontId, typography.weight, commit, cancel],
+    [typography, commit, cancel],
   )
 
   return { pendingId, failedId, choose, cancel }

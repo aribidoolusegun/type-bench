@@ -45,6 +45,7 @@ src/
 ```
 Settings (useReducer)
   ├─ buildTokens()  → TypeTokens ─┬─ cssVariables() → inline style on .specimen  (the preview)
+  │                               ├─ smallScreenCss() → <style> in the preview, and the CSS export
   │                               ├─ buildRootBlock() → sidebar CSS preview
   │                               └─ ScaleList
   ├─ buildCss() / buildJson()      → export dialog, copy, downloads
@@ -53,6 +54,19 @@ Settings (useReducer)
 ```
 
 `cssVariables()` produces the exact strings (for example `--font-size-h1: 3.0518rem`) that the specimen uses and that the CSS export prints. A unit test parses the exported CSS and checks it against this map, and the browser verification compares it with the specimen's computed custom properties.
+
+### Small-screen headings
+
+`TypeTokens` carries a second scale when `typography.smallScreen` is on: `computeScale(t, smallRatio)` changes only Display, H1, H2 and H3. `smallScreen.ratio` is `null` until first configured; the reducer fills it in from the scale ratio the first time the setting is switched on, and never again, so switching off and on keeps it (off only disables the effect). Reset returns it to `null`. `smallScreenCss()` turns it into one rule:
+
+```css
+.type-scope { container: type-scope / inline-size; }
+@container type-scope (width < 600px) {
+  .type-scope > * { --font-size-display: …; --font-size-h1: …; --font-size-h2: …; --font-size-h3: …; }
+}
+```
+
+The specimen *is* the `.type-scope` container, and the preview injects this exact string; the CSS export prints the same string with px comments and setup notes. So the specimen's own width decides which sizes apply: switching template or resizing the window changes nothing unless the specimen's width crosses the breakpoint. The properties are redefined on the container's children because a container can't query its own size. `usesSmallScreen(t, width)` mirrors the rule (`width < breakpoint`) for the interface: the canvas caption and the active column in the scale table read the specimen's measured width.
 
 ## Fonts
 
@@ -64,7 +78,7 @@ Settings (useReducer)
 
 ## Resizing
 
-`ResizableCanvas` sets a real CSS width on the canvas, so the specimen reflows as it would in a browser window of that width. Specimen layouts use **container queries**, so they respond to the canvas, not the browser window. The handles use Pointer Events with pointer capture, apply at most one width change per animation frame, and are `role="separator"` elements that work with the keyboard. The slider, the number fields and the handles all dispatch the same `setWidth` action.
+`ResizableCanvas` sets a real CSS width on the canvas, so the specimen reflows as it would in a browser window of that width. Specimen layouts use **container queries**, so they respond to the canvas, not the browser window. The handles use Pointer Events with pointer capture, apply at most one width change per animation frame, and are `role="separator"` elements that work with the keyboard. There is one **Preview width** control, above the canvas: a number field with presets. It and the handles dispatch the same `setWidth` action.
 
 ## Layout checks (measured diagnostics)
 
@@ -77,7 +91,7 @@ Settings (useReducer)
 
 ## Persistence
 
-Settings are stored under `type-bench:settings` as `{ version, savedAt, settings }`. On restore, every field is validated on its own: numbers are clamped, unknown fonts or enum values fall back to defaults, and a weight the family lacks snaps to the nearest one. A single bad value therefore never discards the rest. Data with an unknown or newer version is discarded rather than guessed at. When storage is unavailable, the tool keeps working and says that it isn't saving.
+Settings are stored under `type-bench:settings` as `{ version, savedAt, settings }`. Version 2 added body and heading weights and small-screen headings; version 1 data is migrated by `migrateV1()` (the old single weight becomes both weights, small screens start off), which reproduces its appearance exactly. On restore, every field is validated on its own: numbers are clamped, unknown fonts or enum values fall back to defaults, and a weight the family lacks snaps to the nearest one. A single bad value therefore never discards the rest. Data with an unknown or newer version is discarded rather than guessed at. When storage is unavailable, the tool keeps working and says that it isn't saving.
 
 On a first visit (nothing saved yet) and on Reset, default preview widths are narrowed to fit the available canvas (`defaultWidthsFor()` with `canvasAreaWidth()`, which reads the sidebar widths from CSS variables), so small screens never open on a cut-off preview. Saved widths are always restored exactly.
 
@@ -89,7 +103,10 @@ On a first visit (nothing saved yet) and on Reset, default preview widths are na
 - export consistency: CSS ↔ preview variables, rem ↔ px, CSS ↔ JSON;
 - that only supported weights are offered and exported;
 - restored-settings validation and repair;
-- weight preservation and snapping when switching families;
+- weight preservation and snapping when switching families, and the note that explains it;
+- small-screen sizes: heading roles only, the breakpoint boundary, and that desktop sizes never move;
+- export parity: the preview's small-screen rule and the exported one are the same text, and CSS and JSON agree;
+- migration of version 1 settings without any change in appearance;
 - that reset restores defaults.
 
 ## Motion

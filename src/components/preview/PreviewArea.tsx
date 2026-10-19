@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState, type CSSProperties, type RefObject } from 'react'
+import { useRef, type CSSProperties, type RefObject } from 'react'
 import { usePresence } from '../../motion/motion.ts'
 import type { LoadStatus } from '../../fonts/fontLoader.ts'
-import { activeStress, BOUNDS, PREVIEW_LABELS, type Settings } from '../../model/settings.ts'
-import { cssVariables, trimNumber, type TypeTokens } from '../../model/tokens.ts'
+import { activeStress, BOUNDS, PREVIEW_LABELS, WIDTH_PRESETS, type Settings } from '../../model/settings.ts'
+import { cssVariables, SCOPE_CLASS, smallScreenCss, trimNumber, type TypeTokens } from '../../model/tokens.ts'
 import { SliderField } from '../controls/SliderField.tsx'
 import { Alert } from '../Icons.tsx'
 import { DashboardSpecimen } from '../specimens/DashboardSpecimen.tsx'
@@ -24,25 +24,14 @@ interface PreviewAreaProps {
   onClearStress: () => void
   highlight: Highlight | null
   onHighlightDone: () => void
+  /** The specimen's measured width (null before the first layout). */
+  renderedWidth: number | null
+  /** Whether the specimen is using small-screen heading sizes right now. */
+  smallScreenActive: boolean
 }
 
 const PANEL_ID = 'preview-panel'
 const CANVAS_ID = 'preview-canvas'
-
-/** Reads the specimen's real rendered width, rather than echoing the setting. */
-function useRenderedWidth(ref: RefObject<HTMLElement | null>): number | null {
-  const [width, setWidth] = useState<number | null>(null)
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    const observer = new ResizeObserver(([entry]) => {
-      if (entry) setWidth(Math.round(entry.borderBoxSize[0]?.inlineSize ?? entry.contentRect.width))
-    })
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [ref])
-  return width
-}
 
 export function PreviewArea({
   settings,
@@ -56,11 +45,12 @@ export function PreviewArea({
   onClearStress,
   highlight,
   onHighlightDone,
+  renderedWidth: rendered,
+  smallScreenActive,
 }: PreviewAreaProps) {
   const { tab } = settings.preview
   const width = settings.preview.widths[tab]
   const { contentLength, longHeadings, largeNumbers } = settings.stress
-  const rendered = useRenderedWidth(specimenRef)
   const font = tokens.font
   const loading = fontStatus === 'loading' || fontStatus === 'idle'
   const t = settings.typography
@@ -71,7 +61,9 @@ export function PreviewArea({
   if (stressed.length > 0) lastStress.current = stressed
   const shownStress = stressed.length > 0 ? stressed : lastStress.current
 
-  const colophon = `Set in ${font.name} at ${trimNumber(t.baseSize, 2)}px, weight ${t.weight}, on a ${trimNumber(t.ratio, 3)} scale.`
+  const colophon = `Set in ${font.name} at ${trimNumber(t.baseSize, 2)}px on a ${trimNumber(t.ratio, 3)} scale, body weight ${tokens.weightBody}, headings ${tokens.weightHeading}.`
+  // The same rule the CSS export prints, so the preview and the export switch at the same width.
+  const smallScreenRule = smallScreenCss(tokens, { pxComments: false })
 
   return (
     <div className="workspace-inner">
@@ -80,9 +72,10 @@ export function PreviewArea({
           Live preview
         </h2>
         <PreviewTabs tab={tab} panelId={PANEL_ID} onChange={onTabChange} />
+        {/* The one width control: it sets the specimen's available layout width. */}
         <div className="workspace-bar__width">
           <SliderField
-            label="Width"
+            label="Preview width"
             unit="px"
             value={width}
             {...BOUNDS.width}
@@ -92,6 +85,20 @@ export function PreviewArea({
             className="field--inline"
             onChange={onWidthChange}
           />
+          <div className="presets presets--inline" role="group" aria-label="Preview width presets">
+            {WIDTH_PRESETS.map((p) => (
+              <button
+                key={p.width}
+                type="button"
+                className="chip"
+                aria-pressed={width === p.width}
+                aria-label={`${p.label} px`}
+                onClick={() => onWidthChange(p.width)}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -105,7 +112,8 @@ export function PreviewArea({
       >
         <p id="canvas-help" className="sr-only">
           {PREVIEW_LABELS[tab]} preview, {width} pixels wide. This area scrolls when the preview is wider than the window. Use the
-          resize handles or the width field to change the width.
+          resize handles, the Preview width field or its presets to change the width.
+          {tokens.smallScreen && (smallScreenActive ? ' Headings use the small-screen sizes.' : ' Headings use the desktop sizes.')}
         </p>
 
         {/* Notices float over the canvas gutter in a zero-height layer, so
@@ -158,13 +166,20 @@ export function PreviewArea({
             stressNotice.mounted ? null : (
               <>
                 Actual size · <span className="num">{rendered ?? width}</span> px wide
+                {tokens.smallScreen && (
+                  <span className={smallScreenActive ? 'canvas-caption__mode is-small' : 'canvas-caption__mode'}>
+                    {' · '}
+                    {smallScreenActive ? 'small-screen headings' : 'desktop headings'}
+                  </span>
+                )}
               </>
             )
           }
         >
+          {smallScreenRule && <style>{smallScreenRule}</style>}
           <div
             ref={specimenRef}
-            className={`specimen specimen--${tab}`}
+            className={`specimen specimen--${tab} ${SCOPE_CLASS}`}
             style={cssVariables(tokens) as CSSProperties}
             data-font-state={fontStatus}
             aria-busy={loading || undefined}

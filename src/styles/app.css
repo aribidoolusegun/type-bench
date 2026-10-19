@@ -572,10 +572,13 @@ kbd {
   gap: var(--tb-s3);
 }
 
+/* In a narrow column the meta (a weight name or a width range) moves under
+   the label whole, rather than breaking mid-phrase. */
 .field__heading {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
-  gap: 6px;
+  gap: 0 6px;
   min-width: 0;
 }
 
@@ -591,6 +594,7 @@ kbd {
 .field__meta {
   color: var(--tb-ink-3);
   font-size: var(--tb-text-xs);
+  white-space: nowrap;
 }
 
 .field__hint {
@@ -1262,6 +1266,45 @@ kbd {
   font-weight: 400;
 }
 
+/* With small screens on: the column the preview is using right now. */
+.scale-table thead th.is-active {
+  color: var(--tb-accent);
+  font-weight: 600;
+}
+
+/* Body and Caption are the same in both columns. */
+.scale-table td.is-same {
+  color: var(--tb-ink-3);
+}
+
+/* Small-screen headings: the extra fields sit under their switch, set in by a rule. */
+.small-screen {
+  margin-bottom: var(--tb-s5);
+}
+
+.small-screen .switch-field {
+  margin-bottom: 0;
+}
+
+.small-screen__fields {
+  margin-top: var(--tb-s3);
+  padding-left: var(--tb-s3);
+  border-left: 2px solid var(--tb-line);
+  animation: tb-drop-in var(--tb-dur-state) var(--tb-ease);
+}
+
+.small-screen__fields .field {
+  margin-bottom: var(--tb-s3);
+}
+
+.small-screen__fields .field__hint {
+  margin: 0;
+}
+
+.weight-note:empty {
+  margin: 0;
+}
+
 /* --------------------------------------------------------------------------
    Preview workspace
    -------------------------------------------------------------------------- */
@@ -1279,9 +1322,16 @@ kbd {
 
 .workspace-bar__width {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--tb-s3);
+  gap: var(--tb-s2) var(--tb-s3);
   margin-left: auto;
+}
+
+/* Presets beside the Preview width field, rather than under a slider. */
+.presets--inline {
+  flex-wrap: nowrap;
+  margin-top: 0;
 }
 
 .field--inline {
@@ -2421,8 +2471,23 @@ kbd {
     font-size: var(--tb-text-sm);
   }
 
+  /* Tabs and the width field share the first row; the presets get their own. */
+  .workspace-bar {
+    flex-wrap: wrap;
+  }
+
   .workspace-bar__width {
-    margin-left: 0;
+    display: contents;
+  }
+
+  .workspace-bar .presets--inline {
+    flex-basis: 100%;
+  }
+
+  .workspace-bar .presets--inline .chip {
+    flex: 1 1 0;
+    height: 36px;
+    padding: 0 4px;
   }
 
   .workspace-bar .field__label {

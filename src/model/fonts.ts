@@ -273,8 +273,27 @@ export function nearestSupportedWeight(font: FontFamily, weight: number): number
 }
 
 /**
+ * Moves body and heading weights onto a family's supported weights (keeping
+ * any it has), and says plainly what changed. The note is null when nothing
+ * had to move, so a font switch that fits stays silent.
+ */
+export function snapWeights(
+  font: FontFamily,
+  weights: { bodyWeight: number; headingWeight: number },
+): { bodyWeight: number; headingWeight: number; note: string | null } {
+  const bodyWeight = nearestSupportedWeight(font, weights.bodyWeight)
+  const headingWeight = nearestSupportedWeight(font, weights.headingWeight)
+  const changes = [
+    ...(bodyWeight !== weights.bodyWeight ? [`body weight ${weights.bodyWeight} is now ${bodyWeight}`] : []),
+    ...(headingWeight !== weights.headingWeight ? [`heading weight ${weights.headingWeight} is now ${headingWeight}`] : []),
+  ]
+  const note = changes.length ? `${font.name} offers weights ${weightRangeLabel(font)}, so ${changes.join(' and ')}.` : null
+  return { bodyWeight, headingWeight, note }
+}
+
+/**
  * The emphasis weight used for labels, buttons and table headers: two steps
- * heavier than the text weight, limited to what the family supports.
+ * heavier than the body weight, limited to what the family supports.
  */
 export function strongWeightFor(font: FontFamily, textWeight: number): number {
   const weights = supportedWeights(font)

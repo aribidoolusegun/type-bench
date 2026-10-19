@@ -2,9 +2,10 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { App } from './App.tsx'
 import { loadFamily } from './fonts/fontLoader.ts'
-import { getFont, strongWeightFor } from './model/fonts.ts'
+import { requiredWeights } from './model/exportTokens.ts'
 import { getStorage, readStoredSettings } from './model/persistence.ts'
 import { defaultWidthsFor } from './model/settings.ts'
+import { buildTokens } from './model/tokens.ts'
 import { canvasAreaWidth } from './utils/layout.ts'
 import './styles/app.css'
 import './styles/specimen.css'
@@ -20,8 +21,8 @@ if (initial.status === 'empty' || initial.status === 'discarded') {
 
 // Start fetching the selected family before React renders, so the specimen
 // is ready as early as possible. Only this one family loads at start-up.
-const { fontId, weight } = initial.settings.typography
-void loadFamily(fontId, [weight, strongWeightFor(getFont(fontId), weight)])
+const { typography } = initial.settings
+void loadFamily(typography.fontId, requiredWeights(buildTokens(typography)))
 
 const root = document.getElementById('root')
 if (!root) throw new Error('Missing #root element')

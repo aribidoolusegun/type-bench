@@ -15,11 +15,13 @@ import { retryFamily } from './fonts/fontLoader.ts'
 import { useFontFamily } from './fonts/useFontStatus.ts'
 import { useFontSelection } from './fonts/useFontSelection.ts'
 import { demoSettings } from './model/demo.ts'
-import type { FontId } from './model/fonts.ts'
+import { getFont, snapWeights, type FontId } from './model/fonts.ts'
 import { buildCss, buildCssSections, buildJson, buildRootBlock, exportFileNames, requiredWeights } from './model/exportTokens.ts'
 import type { RestoreResult } from './model/persistence.ts'
 import { createDefaultSettings, defaultWidthsFor, normaliseSystemName, PREVIEW_TABS, type Settings } from './model/settings.ts'
-import { buildTokens } from './model/tokens.ts'
+import { buildTokens, smallScreenCss } from './model/tokens.ts'
+import { usesSmallScreen } from './model/typeScale.ts'
+import { useRenderedWidth } from './components/preview/useRenderedWidth.ts'
 import { settingsReducer } from './state/settingsReducer.ts'
 import { useActiveSection } from './state/useActiveSection.ts'
 import { useAnnouncer } from './state/useAnnouncer.ts'
@@ -62,7 +64,14 @@ export function App({ initial, storage }: AppProps) {
   const [focusIntro, setFocusIntro] = useState(false)
   const { message, announce, dismiss } = useAnnouncer()
   const [activeSection, setActiveSection] = useActiveSection(SECTION_IDS, '.section-nav')
-  const commitFont = useCallback((fontId: FontId) => dispatch({ type: 'setFont', fontId }), [])
+  // When a font change moves a weight, say so once beside the weights (no toast).
+  const [weightNote, setWeightNote] = useState<string | null>(null)
+  const typographyRef = useRef(settings.typography)
+  typographyRef.current = settings.typography
+  const commitFont = useCallback((fontId: FontId) => {
+    setWeightNote(snapWeights(getFont(fontId), typographyRef.current).note)
+    dispatch({ type: 'setFont', fontId })
+  }, [])
   const fontSelection = useFontSelection(settings.typography, commitFont)
 
   const [dragging, setDragging] = useState(false)
@@ -76,6 +85,9 @@ export function App({ initial, storage }: AppProps) {
     setExportOpen(true)
   }
   const specimenRef = useRef<HTMLDivElement>(null)
+  // The specimen's own width decides which sizes apply, as in the exported CSS.
+  const renderedWidth = useRenderedWidth(specimenRef)
+  const smallScreenActive = usesSmallScreen(settings.typography, renderedWidth ?? settings.preview.widths[settings.preview.tab])
 
   // Width is left out on purpose: the ResizeObserver inside useDiagnostics
   // already sees every width change, including ones made by dragging.
@@ -178,7 +190,10 @@ export function App({ initial, storage }: AppProps) {
   const css = useMemo(() => buildCss(exportSettings), [exportSettings])
   const json = useMemo(() => buildJson(exportSettings), [exportSettings])
   const cssSections = useMemo(() => buildCssSections(exportSettings), [exportSettings])
-  const rootBlock = useMemo(() => buildRootBlock(tokens, { pxComments: false }), [tokens])
+  const rootBlock = useMemo(
+    () => [buildRootBlock(tokens, { pxComments: false }), smallScreenCss(tokens, { pxComments: false })].filter(Boolean).join('\n\n'),
+    [tokens],
+  )
   const fileNames = exportFileNames(exportSettings.systemName)
 
   // Report problems with restored settings once, on start-up.
@@ -240,7 +255,6 @@ export function App({ initial, storage }: AppProps) {
   }
 
   const tab = settings.preview.tab
-  const width = settings.preview.widths[tab]
 
   return (
     <div className="app">
@@ -297,6 +311,8 @@ export function App({ initial, storage }: AppProps) {
           onClearStress={() => dispatch({ type: 'setStress', patch: createDefaultSettings().stress })}
           highlight={highlight}
           onHighlightDone={clearHighlight}
+          renderedWidth={renderedWidth}
+          smallScreenActive={smallScreenActive}
         />
       </main>
 
@@ -308,8 +324,14 @@ export function App({ initial, storage }: AppProps) {
           pendingFontId={fontSelection.pendingId}
           failedFontId={fontSelection.failedId}
           onChooseFont={fontSelection.choose}
-          onChange={(patch) => dispatch({ type: 'setTypography', patch })}
+          onChange={(patch) => {
+            setWeightNote(null)
+            dispatch({ type: 'setTypography', patch })
+          }}
+          onSmallScreenChange={(patch) => dispatch({ type: 'setSmallScreen', patch })}
           onRetryFont={retryFont}
+          smallScreenActive={smallScreenActive}
+          weightNote={weightNote}
         />
       </aside>
 
@@ -317,11 +339,9 @@ export function App({ initial, storage }: AppProps) {
         <StressPanel
           stress={settings.stress}
           tab={tab}
-          width={width}
           diagnostics={diagnostics}
           fontName={tokens.font.name}
           rootBlock={rootBlock}
-          onWidthChange={(w) => dispatch({ type: 'setWidth', width: w })}
           onStressChange={(patch) => dispatch({ type: 'setStress', patch })}
           onShowDashboard={() => dispatch({ type: 'setTab', tab: 'dashboard' })}
           onCopyCss={copyFromSidebar}

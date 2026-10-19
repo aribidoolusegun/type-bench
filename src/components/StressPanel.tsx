@@ -1,16 +1,7 @@
 import type { OverflowItem } from '../diagnostics/measure.ts'
 import type { DiagnosticsState } from '../diagnostics/useDiagnostics.ts'
-import {
-  activeStress,
-  BOUNDS,
-  CONTENT_LENGTH_LABELS,
-  CONTENT_LENGTHS,
-  WIDTH_PRESETS,
-  type PreviewTab,
-  type StressSettings,
-} from '../model/settings.ts'
+import { activeStress, CONTENT_LENGTH_LABELS, CONTENT_LENGTHS, type PreviewTab, type StressSettings } from '../model/settings.ts'
 import { useHelp } from './controls/Help.tsx'
-import { SliderField } from './controls/SliderField.tsx'
 import { Switch } from './controls/Switch.tsx'
 import { CssPreview } from './CssPreview.tsx'
 import { DiagnosticsPanel } from './DiagnosticsPanel.tsx'
@@ -18,11 +9,9 @@ import { DiagnosticsPanel } from './DiagnosticsPanel.tsx'
 interface StressPanelProps {
   stress: StressSettings
   tab: PreviewTab
-  width: number
   diagnostics: DiagnosticsState
   fontName: string
   rootBlock: string
-  onWidthChange: (width: number) => void
   onStressChange: (patch: Partial<StressSettings>) => void
   onShowDashboard: () => void
   onCopyCss: () => Promise<boolean>
@@ -34,11 +23,9 @@ interface StressPanelProps {
 export function StressPanel({
   stress,
   tab,
-  width,
   diagnostics,
   fontName,
   rootBlock,
-  onWidthChange,
   onStressChange,
   onShowDashboard,
   onCopyCss,
@@ -56,22 +43,6 @@ export function StressPanel({
       <h2 id="stress-title" className="panel-title">
         Layout testing
       </h2>
-
-      <SliderField label="Viewport width" unit="px" value={width} {...BOUNDS.width} decimals={0} snap onChange={onWidthChange}>
-        <div className="presets" role="group" aria-label="Width presets">
-          {WIDTH_PRESETS.map((p) => (
-            <button
-              key={p.width}
-              type="button"
-              className="chip"
-              aria-pressed={width === p.width}
-              onClick={() => onWidthChange(p.width)}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-      </SliderField>
 
       <section className="stress-group" aria-labelledby="stress-content-title">
         <div className="panel-subhead">

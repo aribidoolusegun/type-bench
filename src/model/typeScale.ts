@@ -14,6 +14,13 @@ export const ROLE_LABELS: Record<TypeRole, string> = {
   caption: 'Caption',
 }
 
+/** The roles a small-screen ratio applies to. Body and Caption never change. */
+export const HEADING_ROLES: readonly TypeRole[] = ['display', 'h1', 'h2', 'h3']
+
+export function isHeadingRole(role: TypeRole): boolean {
+  return HEADING_ROLES.includes(role)
+}
+
 /** Exponent applied to the ratio: size = base × ratio^step. */
 export const ROLE_STEPS: Record<TypeRole, number> = {
   display: 6,
@@ -53,12 +60,25 @@ export function lineHeightFor(role: TypeRole, bodyLineHeight: number): number {
   return HEADING_LINE_HEIGHTS[role]
 }
 
-export function computeScale(t: Pick<Typography, 'baseSize' | 'ratio' | 'lineHeight'>): ScaleStep[] {
+/**
+ * The full scale. `headingRatio` replaces the ratio for heading roles only
+ * (the small-screen scale); Body and Caption always use `t.ratio`.
+ */
+export function computeScale(t: Pick<Typography, 'baseSize' | 'ratio' | 'lineHeight'>, headingRatio: number = t.ratio): ScaleStep[] {
   return ROLES.map((role) => ({
     role,
     label: ROLE_LABELS[role],
     step: ROLE_STEPS[role],
-    px: sizeForStep(t.baseSize, t.ratio, ROLE_STEPS[role]),
+    px: sizeForStep(t.baseSize, isHeadingRole(role) ? headingRatio : t.ratio, ROLE_STEPS[role]),
     lineHeight: lineHeightFor(role, t.lineHeight),
   }))
+}
+
+/**
+ * Whether small-screen heading sizes apply at a container width. Mirrors the
+ * exported rule exactly: `@container (width < breakpoint)`, so the breakpoint
+ * itself uses the desktop sizes.
+ */
+export function usesSmallScreen(t: Pick<Typography, 'smallScreen'>, containerWidth: number): boolean {
+  return t.smallScreen.enabled && containerWidth < t.smallScreen.breakpoint
 }

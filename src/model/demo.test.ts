@@ -7,7 +7,15 @@ import { createDefaultSettings } from './settings.ts'
 describe('stress-test demonstration', () => {
   it('is the same known setup every time, on the dashboard', () => {
     const user = createDefaultSettings('Product UI')
-    user.typography = { fontId: 'lora', baseSize: 18, ratio: 1.2, lineHeight: 1.6, weight: 500 }
+    user.typography = {
+      fontId: 'lora',
+      baseSize: 18,
+      ratio: 1.2,
+      lineHeight: 1.6,
+      bodyWeight: 500,
+      headingWeight: 700,
+      smallScreen: { enabled: true, ratio: 1.1, breakpoint: 700 },
+    }
     user.stress = { contentLength: 'extended', longHeadings: true, largeNumbers: true }
     const demo = demoSettings(user)
     assert.deepEqual(demo.typography, { ...DEMO_TYPOGRAPHY })

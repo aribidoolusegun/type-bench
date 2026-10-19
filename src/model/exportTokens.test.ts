@@ -21,9 +21,10 @@ function rootDeclarations(css: string): Map<string, string> {
 
 const CASES: Settings[] = [
   createDefaultSettings(),
-  settingsWith({ fontId: 'lora', baseSize: 18, ratio: 1.333, lineHeight: 1.65, weight: 500 }),
-  settingsWith({ fontId: 'poppins', baseSize: 14.5, ratio: 1.2, lineHeight: 1.4, weight: 300 }),
-  settingsWith({ fontId: 'merriweather', baseSize: 20, ratio: 1.618, lineHeight: 1.8, weight: 900 }),
+  settingsWith({ fontId: 'lora', baseSize: 18, ratio: 1.333, lineHeight: 1.65, bodyWeight: 500, headingWeight: 700 }),
+  settingsWith({ fontId: 'poppins', baseSize: 14.5, ratio: 1.2, lineHeight: 1.4, bodyWeight: 300, headingWeight: 600 }),
+  settingsWith({ fontId: 'merriweather', baseSize: 20, ratio: 1.618, lineHeight: 1.8, bodyWeight: 900, headingWeight: 900 }),
+  settingsWith({ fontId: 'inter', ratio: 1.333, headingWeight: 650, smallScreen: { enabled: true, ratio: 1.2, breakpoint: 640 } }),
 ]
 
 describe('CSS export', () => {
@@ -46,7 +47,7 @@ describe('CSS export', () => {
   }
 
   it('names the exact family with a matching generic fallback', () => {
-    const lora = rootDeclarations(buildCss(settingsWith({ fontId: 'lora', weight: 400 })))
+    const lora = rootDeclarations(buildCss(settingsWith({ fontId: 'lora', bodyWeight: 400 })))
     assert.match(lora.get('--font-family-text')!, /^"Lora", .*serif$/)
     assert.doesNotMatch(lora.get('--font-family-text')!, /sans-serif/)
     const inter = rootDeclarations(buildCss(settingsWith({ fontId: 'inter' })))
@@ -55,9 +56,10 @@ describe('CSS export', () => {
 
   it('exports only weights the family supports', () => {
     for (const font of FONTS) {
-      const settings = settingsWith({ fontId: font.id, weight: 900 })
+      const settings = settingsWith({ fontId: font.id, bodyWeight: 900, headingWeight: 100 })
       const tokens = buildTokens(settings.typography)
-      assert.ok(tokens.supportedWeights.includes(tokens.weightText), `${font.id} text`)
+      assert.ok(tokens.supportedWeights.includes(tokens.weightBody), `${font.id} body`)
+      assert.ok(tokens.supportedWeights.includes(tokens.weightHeading), `${font.id} heading`)
       assert.ok(tokens.supportedWeights.includes(tokens.weightStrong), `${font.id} strong`)
     }
   })
@@ -76,7 +78,7 @@ describe('CSS export', () => {
   })
 
   it('lists one @font-face per needed weight for static Poppins', () => {
-    const css = buildCss(settingsWith({ fontId: 'poppins', weight: 400 }))
+    const css = buildCss(settingsWith({ fontId: 'poppins', bodyWeight: 400, headingWeight: 400 }))
     assert.match(css, /poppins-latin-400-normal\.woff2/)
     assert.match(css, /poppins-latin-600-normal\.woff2/)
     assert.doesNotMatch(css, /poppins-latin-700-normal\.woff2/)
@@ -93,8 +95,10 @@ describe('CSS export sections', () => {
   for (const settings of CASES) {
     it(`are exactly the parts of the full file for ${settings.typography.fontId}`, () => {
       const css = buildCss(settings)
-      const { variables, loading, usage, summary } = buildCssSections(settings)
+      const { variables, smallScreen, loading, usage, summary } = buildCssSections(settings)
       assert.ok(css.includes(variables), 'variables block')
+      assert.equal(smallScreen !== null, settings.typography.smallScreen.enabled)
+      if (smallScreen) assert.ok(css.includes(smallScreen), 'small-screen rule')
       assert.ok(css.includes(usage), 'usage example')
       // The loading notes appear under a numbered heading in the file; the body is identical.
       const body = loading.split('\n').slice(2).join('\n')
@@ -116,7 +120,8 @@ describe('JSON export', () => {
         assert.equal(`${value}rem`, declared.get(`--font-size-${role}`), role)
         assert.equal(String(json.font.lineHeight[role].$value), declared.get(`--line-height-${role}`), role)
       }
-      assert.equal(String(json.font.weight.text.$value), declared.get('--font-weight-text'))
+      assert.equal(String(json.font.weight.body.$value), declared.get('--font-weight-body'))
+      assert.equal(String(json.font.weight.heading.$value), declared.get('--font-weight-heading'))
       assert.equal(String(json.font.weight.strong.$value), declared.get('--font-weight-strong'))
       assert.equal(json.font.family.text.$value[0], getFont(t.fontId).name)
     })
@@ -141,6 +146,6 @@ describe('file names and links', () => {
 
   it('builds Google Fonts URLs from the real weight ranges', () => {
     assert.match(googleFontsCssUrl(buildTokens(settingsWith({ fontId: 'dm-sans' }).typography)), /DM\+Sans:wght@100\.\.1000/)
-    assert.match(googleFontsCssUrl(buildTokens(settingsWith({ fontId: 'poppins', weight: 500 }).typography)), /Poppins:wght@500;700/)
+    assert.match(googleFontsCssUrl(buildTokens(settingsWith({ fontId: 'poppins', bodyWeight: 500, headingWeight: 500 }).typography)), /Poppins:wght@500;700/)
   })
 })

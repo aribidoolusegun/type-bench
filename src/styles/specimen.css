@@ -3,6 +3,12 @@
    Every font size and line height comes from the generated tokens, which
    PreviewArea sets as custom properties on .specimen. Layout responds to the
    canvas width through container queries, never to the browser window.
+   The specimen is also the .type-scope container that the exported
+   small-screen rule queries, so both switch at the same width.
+
+   Weights: body and supporting text use --font-weight-body; Display to H3
+   roles use --font-weight-heading; labels, buttons, kickers and table headers
+   use --font-weight-strong (emphasis, derived from the body weight).
    ========================================================================== */
 
 .specimen {
@@ -13,12 +19,12 @@
   /* One line of body text: the unit for vertical rhythm. */
   --sp-rhythm: calc(var(--font-size-body) * var(--line-height-body));
 
-  container-type: inline-size;
+  container: type-scope / inline-size;
   min-height: 558px;
   color: var(--sp-ink);
   font-family: var(--font-family-text);
   font-size: var(--font-size-body);
-  font-weight: var(--font-weight-text);
+  font-weight: var(--font-weight-body);
   line-height: var(--line-height-body);
   font-kerning: normal;
   /* Never fake a weight or style the family doesn't have. */
@@ -59,25 +65,25 @@
 .sp-display {
   font-size: var(--font-size-display);
   line-height: var(--line-height-display);
-  font-weight: var(--font-weight-text);
+  font-weight: var(--font-weight-heading);
 }
 
 .sp-h1 {
   font-size: var(--font-size-h1);
   line-height: var(--line-height-h1);
-  font-weight: var(--font-weight-text);
+  font-weight: var(--font-weight-heading);
 }
 
 .sp-h2 {
   font-size: var(--font-size-h2);
   line-height: var(--line-height-h2);
-  font-weight: var(--font-weight-text);
+  font-weight: var(--font-weight-heading);
 }
 
 .sp-h3 {
   font-size: var(--font-size-h3);
   line-height: var(--line-height-h3);
-  font-weight: var(--font-weight-text);
+  font-weight: var(--font-weight-heading);
 }
 
 .sp-body {
@@ -174,9 +180,11 @@
   margin-bottom: calc(var(--sp-rhythm) * 0.75);
 }
 
+/* The deck is supporting text set at H3 size, so it keeps the body weight. */
 .sp-editorial__intro {
   max-width: 24em;
   color: var(--sp-ink-2);
+  font-weight: var(--font-weight-body);
   margin-bottom: var(--sp-rhythm);
 }
 

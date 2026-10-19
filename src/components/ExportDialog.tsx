@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type RefObject } from 'react'
+import type { CssSections } from '../model/exportTokens.ts'
 import { MOTION, prefersReducedMotion } from '../motion/motion.ts'
 import { CodeBlock } from './CodeBlock.tsx'
 import { CopyButton } from './controls/CopyButton.tsx'
@@ -12,7 +13,7 @@ interface ExportDialogProps {
   css: string
   json: string
   /** The CSS export split for display: the variables come first. */
-  sections: { summary: string; variables: string; loading: string; usage: string }
+  sections: CssSections
   fileNames: { css: string; json: string }
   /** Set when copying failed elsewhere, so the dialog opens ready for manual copying. */
   manualCopy: ExportFormat | null
@@ -195,7 +196,13 @@ export function ExportDialog({
             </>
           ) : format === 'css' ? (
             <>
-              <CodeBlock code={sections.variables} language="css" label="CSS variables" className="code--dialog" />
+              <CodeBlock
+                code={sections.smallScreen ? `${sections.variables}\n\n${sections.smallScreen}` : sections.variables}
+                language="css"
+                label="CSS variables"
+                className="code--dialog"
+              />
+              {sections.smallScreenSetup && <p className="dialog__hint dialog__setup">{sections.smallScreenSetup}</p>}
               <details className="disclosure">
                 <summary className="disclosure__summary">
                   <ChevronDown className="icon disclosure__chevron" />
@@ -221,7 +228,7 @@ export function ExportDialog({
             <p className="dialog__includes">
               {format === 'css'
                 ? 'Copy and download include the full file: these variables, the font-loading notes and the usage example.'
-                : 'Design Tokens (DTCG) JSON: family, weights, sizes, line heights and font metadata.'}
+                : `Design Tokens (DTCG) JSON: family, body and heading weights, sizes${sections.smallScreen ? ' (with small-screen heading sizes and their breakpoint)' : ''}, line heights and font metadata.`}
             </p>
             <p className="dialog__filename">
               <span className="sr-only">File name: </span>

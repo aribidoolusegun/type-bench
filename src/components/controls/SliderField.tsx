@@ -4,7 +4,10 @@ import { trimNumber } from '../../model/tokens.ts'
 import { useHelp } from './Help.tsx'
 
 interface SliderFieldProps {
+  /** The accessible name, also used in correction messages. */
   label: string
+  /** Shorter visible text where a group heading gives the context; `label` stays the accessible name. */
+  shortLabel?: string
   value: number
   min: number
   max: number
@@ -36,6 +39,7 @@ interface SliderFieldProps {
  */
 export function SliderField({
   label,
+  shortLabel,
   value,
   min,
   max,
@@ -104,7 +108,14 @@ export function SliderField({
       <div className="field__row">
         <div className="field__heading">
           <label id={labelId} htmlFor={inputId} className="field__label">
-            {label}
+            {shortLabel ? (
+              <>
+                <span className="sr-only">{label}</span>
+                <span aria-hidden="true">{shortLabel}</span>
+              </>
+            ) : (
+              label
+            )}
           </label>
           {meta && <span className="field__meta">{meta}</span>}
           {help && helpDisclosure.button}
