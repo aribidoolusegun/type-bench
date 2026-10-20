@@ -53,7 +53,7 @@ Settings (useReducer)
   └─ useFontFamily()               → fontLoader → status → dimming, banners, diagnostics gate
 ```
 
-`cssVariables()` produces the exact strings (for example `--font-size-h1: 3.0518rem`) that the specimen uses and that the CSS export prints. A unit test parses the exported CSS and checks it against this map, and the browser verification compares it with the specimen's computed custom properties.
+`cssVariables()` produces the exact strings (for example `--font-size-h1: 3.0518rem`) that the specimen uses and that the CSS export prints. A unit test parses the exported CSS and checks it against this map; during development, scripted browser checks also compared it with the specimen's computed custom properties (see [docs/TESTING.md](docs/TESTING.md)).
 
 ### Small-screen headings
 
@@ -108,6 +108,8 @@ On a first visit (nothing saved yet) and on Reset, default preview widths are na
 - export parity: the preview's small-screen rule and the exported one are the same text, and CSS and JSON agree;
 - migration of version 1 settings without any change in appearance;
 - that reset restores defaults.
+
+Browser-engine checks and manual testing are described in [docs/TESTING.md](docs/TESTING.md).
 
 ## Motion
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-20: Release preparation (documentation only)
+
+- The README is now a short overview with a live demo link, a current screenshot and a recording. Calculations, export usage, keyboard shortcuts and known limitations moved to [docs/GUIDE.md](docs/GUIDE.md), and the testing statement to [docs/TESTING.md](docs/TESTING.md).
+- New screenshots and a recording of the current interface are in `docs/screenshots` and `docs/media`. Images and recordings from earlier builds moved to `docs/history`.
+- CONTRIBUTING explains how to run the project and report a bug, with a matching GitHub issue template.
+- The page description and package description use the new one-line summary.
+
 ## 2026-10-19: Responsive headings and separate weights
 
 ### Added

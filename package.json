@@ -2,7 +2,7 @@
   "name": "type-bench",
   "version": "0.1.0",
   "private": true,
-  "description": "An open-source typography playground for designers: choose a font, tune a type scale, stress-test real layouts and export tokens.",
+  "description": "Build, test and export a responsive typography system.",
   "author": "Olusegun Aribido",
   "license": "MIT",
   "type": "module",

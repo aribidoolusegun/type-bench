@@ -2,19 +2,37 @@
 
 Thanks for your interest in improving Type Bench. Bug reports, accessibility fixes, better sample content and careful additions are all welcome.
 
+## Reporting a bug
+
+Open an issue using the **Bug report** template. It asks for:
+
+1. **Where:** the live site (type-bench.vercel.app) or a local build (with the commit, from `git log -1 --oneline`).
+2. **Browser and device:** for example "Safari 19 on iPhone 15" or "Firefox 140 on Windows 11".
+3. **Steps to reproduce**, starting from a fresh visit if you can.
+4. **What you expected and what happened.**
+5. **The preview:** which one (Editorial, Dashboard or Mobile) and the Preview width.
+6. **Your settings:** the easiest way is to open **Export → JSON tokens → Download JSON** and attach the file. It lists your type settings under `$extensions["type-bench"]`, so the same system can be recreated.
+7. **A screenshot or short recording**, if the problem is visual.
+
+If Type Bench won't load at all, say so and include any errors from the browser console.
+
 ## Before you start
 
 - For anything larger than a small fix, open an issue first to describe the problem and your proposed approach. That avoids duplicated or wasted effort.
 - Read [ARCHITECTURE.md](ARCHITECTURE.md). The most important rule is that the preview and the exports must be derived from the same functions, so they can never disagree.
 
-## Setting up
+## Running the project
 
-You need Node.js 22.18 or later.
+You need [Node.js](https://nodejs.org/) 22.18 or later (`node --version` to check). The tests rely on Node's built-in TypeScript support, which older versions don't have.
 
 ```bash
+git clone https://github.com/aribidoolusegun/type-bench.git
+cd type-bench
 npm install
-npm run dev
+npm run dev        # opens on http://localhost:5173
 ```
+
+Your settings in the local app are saved in that browser's local storage for `localhost`, separately from the live site. To start again as a first-time visitor, use **Reset** and **About Type Bench**, or clear the site data for `localhost`.
 
 Before opening a pull request, run:
 
@@ -38,10 +56,6 @@ npm run build
 2. Add the file(s) and the licence text, with the copyright line from the font file, to `public/fonts/<id>/`.
 3. Read the real weight range and copyright notice from the file (for example with `fontTools`) rather than from a website. Add the entry to `src/model/fonts.ts`.
 4. Update the table in [FONTS.md](FONTS.md), the family count in the README and interface copy, and the catalogue test in `src/model/fonts.test.ts`.
-
-## Reporting bugs
-
-Please include your browser and operating system, the steps to reproduce, and what you expected to happen. If the problem involves layout, a screenshot and the preview width help a lot.
 
 ## Licence
 
