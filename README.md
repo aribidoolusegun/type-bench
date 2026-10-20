@@ -59,6 +59,7 @@ The built site is fully static and uses relative paths, so `dist/` can be served
 - [Architecture](ARCHITECTURE.md): how the app is put together
 - [Contributing](CONTRIBUTING.md): running the project, reporting bugs and proposing changes
 - [Fonts](FONTS.md): font sources, copyright notices and licences
+- [Security](SECURITY.md): how to report a vulnerability privately
 - [History](docs/history/): screenshots and recordings from earlier builds, and before-and-after comparisons
 - [Beta feedback guide](docs/beta/FEEDBACK-GUIDE.md): a format for a 20-minute feedback session
 

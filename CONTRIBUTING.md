@@ -16,6 +16,8 @@ Open an issue using the **Bug report** template. It asks for:
 
 If Type Bench won't load at all, say so and include any errors from the browser console.
 
+Security problems should be reported privately instead; see [SECURITY.md](SECURITY.md).
+
 ## Before you start
 
 - For anything larger than a small fix, open an issue first to describe the problem and your proposed approach. That avoids duplicated or wasted effort.
