@@ -6,6 +6,7 @@
 - New screenshots and a recording of the current interface are in `docs/screenshots` and `docs/media`. Images and recordings from earlier builds moved to `docs/history`.
 - CONTRIBUTING explains how to run the project and report a bug, with a matching GitHub issue template.
 - The page description and package description use the new one-line summary.
+- `LICENSE` now contains only the standard MIT text, so tools can recognise it. The note that the bundled fonts are licensed separately under the SIL Open Font License 1.1 remains in the README, FONTS.md and each font's `OFL.txt`.
 
 ## 2026-10-19: Responsive headings and separate weights
 
